@@ -1,52 +1,57 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
 import AdminDashboard from './components/admin/AdminDashboard';
-import StoreManagement from './components/admin/StoreManagement';
-import UserManagement from './components/admin/UserManagement';
 import UserDashboard from './components/user/UserDashboard';
 import StoreOwnerDashboard from './components/store-owner/StoreOwnerDashboard';
-import StoreList from './components/user/StoreList';
+import { useAuth } from './services/auth';
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles: string[] }> = ({ children, allowedRoles }) => {
-  const role = localStorage.getItem('role');
-  return role && allowedRoles.includes(role) ? <>{children}</> : <Navigate to="/login" />;
-};
+const App = () => {
+  const { user } = useAuth();
+  const [isInitialRender, setIsInitialRender] = useState(true);
 
-const App: React.FC = () => {
+  useEffect(() => {
+    console.log('App user (useEffect):', user);
+    setIsInitialRender(false);
+  }, [user]);
+
+  const getRedirectPath = () => {
+    console.log('getRedirectPath called, user:', user, 'isInitialRender:', isInitialRender);
+    if (isInitialRender) return '/login'; // Prevent redirect on initial render
+    if (!user) return '/login';
+    switch (user.role) {
+      case 'admin':
+        return '/admin';
+      case 'user':
+        return '/user';
+      case 'store_owner':
+        return '/store-owner';
+      default:
+        return '/login';
+    }
+  };
+
+  console.log('App user (render):', user);
+
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route
-          path="/admin"
-          element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>}
-        />
-        <Route
-          path="/admin/stores"
-          element={<ProtectedRoute allowedRoles={['admin']}><StoreManagement /></ProtectedRoute>}
-        />
-        <Route
-          path="/admin/users"
-          element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>}
-        />
-        <Route
-          path="/user"
-          element={<ProtectedRoute allowedRoles={['user']}><UserDashboard /></ProtectedRoute>}
-        />
-        <Route
-          path="/stores"
-          element={<ProtectedRoute allowedRoles={['user']}><StoreList /></ProtectedRoute>}
-        />
-        <Route
-          path="/store-owner"
-          element={<ProtectedRoute allowedRoles={['store_owner']}><StoreOwnerDashboard /></ProtectedRoute>}
-        />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route
+        path="/admin"
+        element={user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" />}
+      />
+      <Route
+        path="/user"
+        element={user?.role === 'user' ? <UserDashboard /> : <Navigate to="/login" />}
+      />
+      <Route
+        path="/store-owner"
+        element={user?.role === 'store_owner' ? <StoreOwnerDashboard /> : <Navigate to="/login" />}
+      />
+      <Route path="/" element={<Navigate to={getRedirectPath()} replace />} />
+    </Routes>
   );
 };
 

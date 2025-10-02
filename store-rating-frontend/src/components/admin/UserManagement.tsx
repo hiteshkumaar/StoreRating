@@ -1,18 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { Typography, Button, TextField, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { useState, useEffect } from 'react';
 import { createUser, getUsers } from '../../services/api';
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  address: string;
-  role: string;
-}
-
-const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', address: '', role: '' });
+const UserManagement = () => {
+  const [users, setUsers] = useState([]);
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    password: '',
+    address: '',
+    role: 'user', // Default role
+  });
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -20,7 +17,7 @@ const UserManagement: React.FC = () => {
         const response = await getUsers({});
         setUsers(response.data);
       } catch (error) {
-        console.error('Error fetching users:', error);
+        console.error('Failed to fetch users', error);
       }
     };
     fetchUsers();
@@ -28,65 +25,89 @@ const UserManagement: React.FC = () => {
 
   const handleCreateUser = async () => {
     try {
-      await createUser(newUser);
-      setNewUser({ name: '', email: '', password: '', address: '', role: '' });
+      // Pass both newUser and role to createUser
+      await createUser(newUser, newUser.role);
+      setNewUser({ name: '', email: '', password: '', address: '', role: 'user' });
       const response = await getUsers({});
-
       setUsers(response.data);
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error('Failed to create user', error);
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setNewUser({ ...newUser, [e.target.name]: e.target.value });
   };
 
   return (
     <div>
-      <Typography variant="h4">User Management</Typography>
-      <TextField
-        label="Name"
-        value={newUser.name}
-        onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-      />
-      <TextField
-        label="Email"
-        value={newUser.email}
-        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-      />
-      <TextField
-        label="Password"
-        value={newUser.password}
-        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-      />
-      <TextField
-        label="Address"
-        value={newUser.address}
-        onChange={(e) => setNewUser({ ...newUser, address: e.target.value })}
-      />
-      <TextField
-        label="Role"
-        value={newUser.role}
-        onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-      />
-      <Button onClick={handleCreateUser}>Create User</Button>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Name</TableCell>
-            <TableCell>Email</TableCell>
-            <TableCell>Address</TableCell>
-            <TableCell>Role</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {users.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell>{user.name}</TableCell>
-              <TableCell>{user.email}</TableCell>
-              <TableCell>{user.address}</TableCell>
-              <TableCell>{user.role}</TableCell>
-            </TableRow>
+      <h2>User Management</h2>
+      <form onSubmit={(e) => { e.preventDefault(); handleCreateUser(); }}>
+        <input
+          type="text"
+          name="name"
+          value={newUser.name}
+          onChange={handleInputChange}
+          placeholder="Name"
+          minLength={20}
+          maxLength={60}
+          required
+        />
+        <input
+          type="email"
+          name="email"
+          value={newUser.email}
+          onChange={handleInputChange}
+          placeholder="Email"
+          required
+        />
+        <input
+          type="password"
+          name="password"
+          value={newUser.password}
+          onChange={handleInputChange}
+          placeholder="Password"
+          pattern="^(?=.*[A-Z])(?=.*[!@#$&*]).{8,16}$"
+          required
+        />
+        <input
+          type="text"
+          name="address"
+          value={newUser.address}
+          onChange={handleInputChange}
+          placeholder="Address"
+          maxLength={400}
+          required
+        />
+        <select name="role" value={newUser.role} onChange={handleInputChange} required>
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+          <option value="store_owner">Store Owner</option>
+        </select>
+        <button type="submit">Create User</button>
+      </form>
+
+      <h3>Users List</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Address</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user: any) => (
+            <tr key={user.id}>
+              <td>{user.name}</td>
+              <td>{user.email}</td>
+              <td>{user.address}</td>
+              <td>{user.role}</td>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
   );
 };

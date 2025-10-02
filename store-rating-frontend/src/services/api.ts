@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000', // Update with your backend URL
+  baseURL: 'http://localhost:3000',
 });
 
 api.interceptors.request.use((config) => {
@@ -14,12 +14,13 @@ api.interceptors.request.use((config) => {
 
 export const signup = (data: any) => api.post('/auth/signup', data);
 export const login = (data: any) => api.post('/auth/login', data);
-export const createUser = (data: any) => api.post('/users', data);
-export const getUsers = (params: any) => api.get('/users', { params });
-export const updatePassword = (data: any) => api.patch('/users/password', data);
+export const createUser = (data: any, role: string) => api.post(`/users?role=${role}`, data);
+export const updatePassword = (newPassword: string) => api.patch('/users/password', { newPassword });
+export const getUsers = (filters: any) => api.get('/users', { params: filters });
 export const createStore = (data: any) => api.post('/stores', data);
-export const getStores = (params: any) => api.get('/stores', { params });
-export const getStoreRating = (storeId: number) => api.get(`/stores/${storeId}/rating`);
-export const submitRating = (data: any) => api.post('/ratings', data);
+export const getStores = (filters: any) => api.get('/stores', { params: filters });
+export const getStoresByOwner = (ownerId: number) => api.get(`/stores/owner?ownerId=${ownerId}`);
+export const submitRating = (data: { storeId: number; value: number }) => api.post('/ratings', data);
+export const updateRating = (id: number, value: number) => api.patch(`/ratings/${id}`, { value });
 export const getRatingsByStore = (storeId: number) => api.get(`/ratings/store/${storeId}`);
-export const getUserRating = (storeId: number) => api.get(`/ratings/user/${storeId}`);
+export const getAverageRating = (storeId: number) => api.get(`/ratings/average/${storeId}`);

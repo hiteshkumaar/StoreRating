@@ -1,60 +1,50 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useAuth } from '../../services/auth';
 import { useNavigate } from 'react-router-dom';
-import { Typography, TextField, Button, Box } from '@mui/material';
-import { login } from '../../services/api';
+import styles from './Login.module.css'
 
-const Login: React.FC = () => {
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const { signIn } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const response = await login({ email, password });
-      localStorage.setItem('token', response.data.accessToken);
-      localStorage.setItem('role', response.data.role);
-      localStorage.setItem('userId', response.data.userId.toString());
-      if (response.data.role === 'admin') {
-        navigate('/admin');
-      } else if (response.data.role === 'store_owner') {
-        navigate('/store-owner');
-      } else {
-        navigate('/user');
-      }
-    } catch (err) {
-      setError('Invalid credentials');
+      await signIn(email, password);
+      navigate('/'); 
+    } catch (error) {
+      console.error('Login failed', error);
     }
   };
 
   return (
-    <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
-      <Typography variant="h4" gutterBottom>
-        Login
-      </Typography>
-      {error && <Typography color="error">{error}</Typography>}
-      <TextField
-        label="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        fullWidth
-        margin="normal"
-      />
-      <TextField
-        label="Password"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        fullWidth
-        margin="normal"
-      />
-      <Button variant="contained" onClick={handleLogin} fullWidth sx={{ mt: 2 }}>
-        Login
-      </Button>
-      <Button onClick={() => navigate('/signup')} sx={{ mt: 2 }}>
-        Don't have an account? Sign up
-      </Button>
-    </Box>
+    <div className={styles.loginContainer}>
+      <form onSubmit={handleSubmit} className={styles.loginForm}>
+        <h2 className={styles.title}>Login</h2>
+        
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          required
+          className={styles.input}
+        />
+        
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          required
+          className={styles.input}
+        />
+        
+        <button type="submit" className={styles.button}>Login</button>
+      </form>
+    </div>
   );
 };
 

@@ -1,70 +1,69 @@
-import React, { useEffect, useState } from 'react';
-import { Typography, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
-import { getStores } from '../../services/api';
+import { useState } from 'react';
+import { submitRating, updateRating, getAverageRating } from '../../services/api';
 import RatingForm from './RatingForm';
 
-interface Store {
-  id: number;
-  name: string;
-  address: string;
-  ratings: any[];
-}
+const StoreList = ({ stores }: { stores: any[] }) => {
+  const [filters, setFilters] = useState({ name: '', address: '' });
+  const [ratings, setRatings] = useState<{ [key: number]: number }>({});
 
-const StoreList: React.FC = () => {
-  const [stores, setStores] = useState<Store[]>([]);
-  const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    const fetchStores = async () => {
-      try {
-        const response = await getStores({ name: search });
-        setStores(response.data);
-      } catch (error) {
-        console.error('Error fetching stores:', error);
-      }
-    };
-    fetchStores();
-  }, [search]);
-
-  const handleRatingSubmitted = async () => {
-    const response = await getStores({ name: search });
-    setStores(response.data);
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters({ ...filters, [e.target.name]: e.target.value });
   };
+
+  const handleRatingSubmit = async (storeId: number, value: number, ratingId?: number) => {
+    if (ratingId) {
+      await updateRating(ratingId, value);
+    } else {
+      await submitRating({ storeId, value });
+    }
+    const res = await getAverageRating(storeId);
+    setRatings((prev) => ({ ...prev, [storeId]: res.data }));
+  };
+
+  const filteredStores = stores.filter(
+    (store) =>
+      store.name.toLowerCase().includes(filters.name.toLowerCase()) &&
+      store.address.toLowerCase().includes(filters.address.toLowerCase())
+  );
 
   return (
     <div>
-      <Typography variant="h4">Stores</Typography>
-      <TextField
-        label="Search by Name"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
+      <input
+        type="text"
+        name="name"
+        value={filters.name}
+        onChange={handleFilterChange}
+        placeholder="Filter by name"
       />
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Name</TableCell>
-            <TableCell>Address</TableCell>
-            <TableCell>Average Rating</TableCell>
-            <TableCell>Action</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {stores.map((store) => (
-            <TableRow key={store.id}>
-              <TableCell>{store.name}</TableCell>
-              <TableCell>{store.address}</TableCell>
-              <TableCell>
-                {store.ratings.length > 0
-                  ? (store.ratings.reduce((sum: number, r: any) => sum + r.value, 0) / store.ratings.length).toFixed(1)
-                  : 'N/A'}
-              </TableCell>
-              <TableCell>
-                <RatingForm storeId={store.id} onRatingSubmitted={handleRatingSubmitted} />
-              </TableCell>
-            </TableRow>
+      <input
+        type="text"
+        name="address"
+        value={filters.address}
+        onChange={handleFilterChange}
+        placeholder="Filter by address"
+      />
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Address</th>
+            <th>Rating</th>
+            <th>Submit Rating</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredStores.map((store) => (
+            <tr key={store.id}>
+              <td>{store.name}</td>
+              <td>{store.address}</td>
+              <td>{ratings[store.id] || 'No ratings'}</td>
+              <td>
+                <RatingForm storeId={store.id} onSubmit={handleRatingSubmit} />
+              </td>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
   );
 };

@@ -1,37 +1,24 @@
-import React, { useState } from 'react';
-import { TextField, Button, Typography } from '@mui/material';
-import { submitRating } from '../../services/api';
+import { useState } from 'react';
 
-interface RatingFormProps {
-  storeId: number;
-  onRatingSubmitted: () => void;
-}
+const RatingForm = ({ storeId, onSubmit }: { storeId: number; onSubmit: (storeId: number, value: number, ratingId?: number) => void }) => {
+  const [value, setValue] = useState(1);
 
-const RatingForm: React.FC<RatingFormProps> = ({ storeId, onRatingSubmitted }) => {
-  const [value, setValue] = useState('');
-
-  const handleSubmit = async () => {
-    try {
-      await submitRating({ storeId, value: parseInt(value) });
-      setValue('');
-      onRatingSubmitted();
-    } catch (error) {
-      console.error('Error submitting rating:', error);
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(storeId, value);
   };
 
   return (
-    <div>
-      <Typography variant="h6">Rate Store</Typography>
-      <TextField
-        type="number"
-        label="Rating (1-5)"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        inputProps={{ min: 1, max: 5 }}
-      />
-      <Button onClick={handleSubmit}>Submit</Button>
-    </div>
+    <form onSubmit={handleSubmit}>
+      <select value={value} onChange={(e) => setValue(Number(e.target.value))}>
+        {[1, 2, 3, 4, 5].map((num) => (
+          <option key={num} value={num}>
+            {num}
+          </option>
+        ))}
+      </select>
+      <button type="submit">Submit</button>
+    </form>
   );
 };
 

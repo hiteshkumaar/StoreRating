@@ -1,85 +1,127 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Typography, TextField, Button, Box, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
 import { signup } from '../../services/api';
+import './SignUp.css'; // Shared CSS for auth pages
 
-const Signup: React.FC = () => {
-  const [form, setForm] = useState({ name: '', email: '', password: '', address: '', role: 'user' });
-  const [error, setError] = useState('');
+const Signup = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    address: '',
+  });
+  type Errors = {
+    name?: string;
+    email?: string;
+    password?: string;
+    address?: string;
+    general?: string;
+  };
+  const [errors, setErrors] = useState<Errors>({});
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignup = async () => {
+  const validateForm = () => {
+    const newErrors: any = {};
+    if (formData.name.length < 20) newErrors.name = 'Name must be at least 20 characters';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email format';
+    if (!/^(?=.*[A-Z])(?=.*[!@#$&*]).{8,16}$/.test(formData.password))
+      newErrors.password = 'Password must be 8-16 characters with an uppercase letter and a special character';
+    if (formData.address.length > 400) newErrors.address = 'Address cannot exceed 400 characters';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    setLoading(true);
     try {
-      const response = await signup(form);
-      localStorage.setItem('token', response.data.accessToken);
-      localStorage.setItem('role', response.data.role);
-      localStorage.setItem('userId', response.data.userId);
-      if (response.data.role === 'admin') {
-        navigate('/admin');
-      } else if (response.data.role === 'store_owner') {
-        navigate('/store-owner');
-      } else {
-        navigate('/user');
-      }
-    } catch (err) {
-      setError('Signup failed');
+      await signup(formData);
+      navigate('/login');
+    } catch (error) {
+      setErrors({ general: 'Signup failed. Please try again.' });
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors({});
+  };
+
   return (
-    <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
-      <Typography variant="h4" gutterBottom>
-        Signup
-      </Typography>
-      {error && <Typography color="error">{error}</Typography>}
-      <TextField
-        label="Name"
-        value={form.name}
-        onChange={(e) => setForm({ ...form, name: e.target.value })}
-        fullWidth
-        margin="normal"
-      />
-      <TextField
-        label="Email"
-        value={form.email}
-        onChange={(e) => setForm({ ...form, email: e.target.value })}
-        fullWidth
-        margin="normal"
-      />
-      <TextField
-        label="Password"
-        type="password"
-        value={form.password}
-        onChange={(e) => setForm({ ...form, password: e.target.value })}
-        fullWidth
-        margin="normal"
-      />
-      <TextField
-        label="Address"
-        value={form.address}
-        onChange={(e) => setForm({ ...form, address: e.target.value })}
-        fullWidth
-        margin="normal"
-      />
-      <FormControl fullWidth margin="normal">
-        <InputLabel>Role</InputLabel>
-        <Select
-          value={form.role}
-          label="Role"
-          onChange={(e) => setForm({ ...form, role: e.target.value })}
-        >
-          <MenuItem value="user">User</MenuItem>
-          <MenuItem value="store_owner">Store Owner</MenuItem>
-          <MenuItem value="admin">Admin</MenuItem>
-        </Select>
-      </FormControl>
-      <Button variant="contained" onClick={handleSignup} fullWidth sx={{ mt: 2 }}>
-        Signup
-      </Button>
-      <Button onClick={() => navigate('/login')} sx={{ mt: 2 }}>
-        Already have an account? Login
-      </Button>
-    </Box>
+    <div className="auth-container">
+      <div className="auth-card">
+        <h2>Sign Up for Store Rating</h2>
+        <p className="tagline">Rate and discover stores easily!</p>
+        <form onSubmit={handleSubmit} aria-label="Signup form">
+          <div className="form-group">
+            <label htmlFor="name">Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Enter your full name"
+              required
+              aria-describedby="name-error"
+            />
+            {errors.name && <span id="name-error" className="error">{errors.name}</span>}
+          </div>
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Enter your email"
+              required
+              aria-describedby="email-error"
+            />
+            {errors.email && <span id="email-error" className="error">{errors.email}</span>}
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Enter your password"
+              required
+              aria-describedby="password-error"
+            />
+            {errors.password && <span id="password-error" className="error">{errors.password}</span>}
+          </div>
+          <div className="form-group">
+            <label htmlFor="address">Address</label>
+            <textarea
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              placeholder="Enter your address"
+              required
+              aria-describedby="address-error"
+            />
+            {errors.address && <span id="address-error" className="error">{errors.address}</span>}
+          </div>
+          {errors.general && <span className="error">{errors.general}</span>}
+          <button type="submit" disabled={loading || Object.keys(errors).length > 0}>
+            {loading ? 'Signing Up...' : 'Sign Up'}
+          </button>
+        </form>
+        <p className="link">
+          Already have an account? <a href="/login">Log in</a>
+        </p>
+      </div>
+    </div>
   );
 };
 

@@ -1,61 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import { Typography, Card, CardContent, Box } from '@mui/material';
-// import Grid from '@mui/material/Unstable_Grid2';
+import { useState, useEffect } from 'react';
 import { getUsers, getStores, getRatingsByStore } from '../../services/api';
+import { useAuth } from '../../services/auth';
 
-interface DashboardStats {
-  totalUsers: number;
-  totalStores: number;
-  totalRatings: number;
-}
-
-const AdminDashboard: React.FC = () => {
-  const [stats, setStats] = useState<DashboardStats>({ totalUsers: 0, totalStores: 0, totalRatings: 0 });
+const AdminDashboard = () => {
+  const [users, setUsers] = useState([]);
+  const [stores, setStores] = useState([]);
+  const [ratings, setRatings] = useState([]);
+  const { signOut } = useAuth();
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const users = await getUsers({});
-        const storesResponse = await getStores({});
-        const stores = storesResponse.data;
-        const ratings = await Promise.all(stores.map((store: any) => getRatingsByStore(store.id)));
-        setStats({
-          totalUsers: users.data.length,
-          totalStores: stores.length,
-          totalRatings: ratings.reduce((sum: number, r: any[]) => sum + r.length, 0),
-        });
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      }
+    const fetchData = async () => {
+      const usersRes = await getUsers({});
+      const storesRes = await getStores({});
+      const ratingsRes = await getRatingsByStore(0); // Adjust as needed
+      setUsers(usersRes.data);
+      setStores(storesRes.data);
+      setRatings(ratingsRes.data);
     };
-    fetchStats();
+    fetchData();
   }, []);
 
   return (
     <div>
-      <Typography variant="h4" gutterBottom>
-        Admin Dashboard
-      </Typography>
-      <Box display="flex" gap={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6">Total Users</Typography>
-              <Typography variant="h4">{stats.totalUsers}</Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1 }}>
-            <CardContent>
-              <Typography variant="h6">Total Stores</Typography>
-              <Typography variant="h4">{stats.totalStores}</Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1 }}>
-            <CardContent>
-              <Typography variant="h6">Total Ratings</Typography>
-              <Typography variant="h4">{stats.totalRatings}</Typography>
-            </CardContent>
-          </Card>
-      </Box>
+      <h2>Admin Dashboard</h2>
+      <p>Total Users: {users.length}</p>
+      <p>Total Stores: {stores.length}</p>
+      <p>Total Ratings: {ratings.length}</p>
+      <button onClick={signOut}>Logout</button>
+      {/* Add StoreManagement and UserManagement components */}
     </div>
   );
 };

@@ -1,52 +1,51 @@
-import React, { useEffect, useState } from 'react';
-import { Container, Typography, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
-import { getStores, getRatingsByStore, getStoreRating } from '../../services/api';
+import { useState, useEffect } from 'react';
+import { getStoresByOwner, getRatingsByStore, getAverageRating } from '../../services/api';
+import { useAuth } from '../../services/auth';
 
-const StoreOwnerDashboard: React.FC = () => {
+const StoreOwnerDashboard = () => {
   const [stores, setStores] = useState([]);
-  const [ratings, setRatings] = useState<Record<number, { ratings: any[]; average: number }>>({});
-  
+  const [ratings, setRatings] = useState([]);
+  const { user, signOut } = useAuth();
+
   useEffect(() => {
-    const fetchStores = async () => {
-      const response = await getStores({});
-      setStores(response.data.filter((store: any) => store.owner.id === parseInt(localStorage.getItem('userId') || '0')));
-      response.data.forEach(async (store: any) => {
-        const storeRatings = await getRatingsByStore(store.id);
-        const averageRating = await getStoreRating(store.id);
-        setRatings((prev) => ({ ...prev, [store.id]: { ratings: storeRatings.data, average: averageRating.data } }));
-      });
+    const fetchData = async () => {
+      if (!user) return;
+      const storesRes = await getStoresByOwner(user.userId);
+      setStores(storesRes.data);
+      if (storesRes.data.length > 0) {
+        const ratingsRes = await getRatingsByStore(storesRes.data[0].id);
+        setRatings(ratingsRes.data);
+      }
     };
-    fetchStores();
-  }, []);
+    fetchData();
+  }, [user]);
 
   return (
-    <Container>
-      <Typography variant="h4" gutterBottom>
-        My Stores
-      </Typography>
+    <div>
+      <h2>Store Owner Dashboard</h2>
       {stores.map((store: any) => (
         <div key={store.id}>
-          <Typography variant="h6">{store.name}</Typography>
-          <Typography>Average Rating: {ratings[store.id]?.average.toFixed(1) || 'N/A'}</Typography>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>User</TableCell>
-                <TableCell>Rating</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {ratings[store.id]?.ratings.map((rating: any) => (
-                <TableRow key={rating.id}>
-                  <TableCell>{rating.user.name}</TableCell>
-                  <TableCell>{rating.value}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <h3>{store.name}</h3>
+          <p>
+            Average Rating: {
+              ratings.length > 0
+                ? (
+                    (ratings.reduce((sum: number, rating: any) => sum + rating.value, 0) / ratings.length).toFixed(2)
+                  )
+                : 'No ratings'
+            }
+          </p>
+          <ul>
+            {ratings.map((rating: any) => (
+              <li key={rating.id}>
+                {rating.user.name}: {rating.value}
+              </li>
+            ))}
+          </ul>
         </div>
       ))}
-    </Container>
+      <button onClick={signOut}>Logout</button>
+    </div>
   );
 };
 
